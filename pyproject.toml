@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "hwdesign"
+name = "kicad-hwdesign"
 version = "0.1.0"
-description = "AI 기반 KiCad 하드웨어 설계 자동화 플러그인"
+description = "KiCad 9 AI Hardware Design MCP Server"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10,<3.13"
@@ -66,7 +66,7 @@ all = [
 ]
 
 [project.scripts]
-hwdesign = "core.main:main"
+kicad-hwdesign = "core.main:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["core", "plugin"]

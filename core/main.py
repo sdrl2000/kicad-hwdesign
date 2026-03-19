@@ -31,8 +31,8 @@ from loguru import logger
 # ─── MCP 서버 인스턴스 ──────────────────────────────────
 
 mcp = FastMCP(
-    name="hwdesign",
-    instructions="""hwdesign — AI 기반 KiCad 하드웨어 설계 자동화 MCP 서버.
+    name="kicad-hwdesign",
+    instructions="""kicad-hwdesign — KiCad 9 하드웨어 설계 자동화 MCP 서버.
 
 KiCad 9 프로젝트의 회로도/PCB를 분석·조작하는 도구를 제공합니다.
 AI 판단(회로 구성, 배치 전략 등)은 당신(Claude)이 직접 수행하고,

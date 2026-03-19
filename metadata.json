@@ -1,16 +1,16 @@
 {
-    "name": "hwdesign",
-    "description": "AI 기반 KiCad 하드웨어 설계 자동화 플러그인",
-    "description_full": "Claude API를 활용한 회로도 생성, AI 기반 PCB 배치/라우팅, 부품 검색 자동화 플러그인",
-    "identifier": "com.hwdesign.kicad-plugin",
+    "name": "kicad-hwdesign",
+    "description": "KiCad 9 AI Hardware Design MCP Server",
+    "description_full": "MCP 기반 KiCad 9 하드웨어 설계 자동화. 배치 최적화, 오토라우팅, 부품 검색, DRC/ERC 등 24개 도구 제공.",
+    "identifier": "com.kicad-hwdesign.mcp-server",
     "type": "plugin",
     "author": {
-        "name": "hwdesign",
+        "name": "yoonpro7",
         "contact": {}
     },
     "license": "MIT",
     "resources": {
-        "homepage": "https://github.com/hwdesign/kicad-plugin"
+        "homepage": "https://github.com/yoonpro7/kicad-hwdesign"
     },
     "versions": [
         {

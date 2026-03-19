@@ -1,9 +1,9 @@
 {
   "mcpServers": {
-    "hwdesign": {
-      "command": "/absolute/path/to/hwdesign/.venv/bin/python",
+    "kicad-hwdesign": {
+      "command": "/absolute/path/to/kicad-hwdesign/.venv/bin/python",
       "args": ["-m", "core.main"],
-      "cwd": "/absolute/path/to/hwdesign"
+      "cwd": "/absolute/path/to/kicad-hwdesign"
     }
   }
 }

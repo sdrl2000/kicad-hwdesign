@@ -145,7 +145,7 @@ class TestMCPServer:
     def test_mcp_server_created(self):
         from core.main import mcp
 
-        assert mcp.name == "hwdesign"
+        assert mcp.name == "kicad-hwdesign"
 
     def test_mcp_tools_registered(self):
         """MCP 도구가 등록되었는지 확인"""
