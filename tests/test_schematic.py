@@ -364,3 +364,130 @@ class TestDynamicSymbolLoader:
         result = DynamicSymbolLoader._extract_symbol_block(sample, "Outer")
         assert result is not None
         assert "Outer_0_1" in result
+
+
+# ═══════════════════════════════════════════════════════════
+# 계층 스키매틱 파싱
+# ═══════════════════════════════════════════════════════════
+
+HIER_DIR = os.path.join(os.path.dirname(__file__), "fixtures", "hierarchical")
+HIER_MAIN = os.path.join(HIER_DIR, "hierarchical_main.kicad_sch")
+
+
+class TestHierarchicalSheets:
+    def test_parse_sheets(self):
+        """계층 시트 블록 파싱"""
+        from core.schematic.netlist_extractor import NetlistExtractor
+
+        if not os.path.exists(HIER_MAIN):
+            pytest.skip("hierarchical fixtures not found")
+
+        ext = NetlistExtractor(HIER_MAIN)
+        data = ext.parse()
+
+        assert len(data.sheets) == 2
+        names = {s.name for s in data.sheets}
+        assert "Logic" in names
+        assert "Output" in names
+
+    def test_sheet_pins(self):
+        """시트 핀 파싱"""
+        from core.schematic.netlist_extractor import NetlistExtractor
+
+        if not os.path.exists(HIER_MAIN):
+            pytest.skip("hierarchical fixtures not found")
+
+        ext = NetlistExtractor(HIER_MAIN)
+        data = ext.parse()
+
+        logic_sheet = next(s for s in data.sheets if s.name == "Logic")
+        pin_names = {p.name for p in logic_sheet.pins}
+        assert "VCC" in pin_names
+        assert "GND" in pin_names
+        assert "OUT" in pin_names
+
+        output_sheet = next(s for s in data.sheets if s.name == "Output")
+        assert len(output_sheet.pins) == 2
+
+    def test_parse_hierarchy_tree(self):
+        """재귀 계층 트리 파싱"""
+        from core.schematic.netlist_extractor import NetlistExtractor
+
+        if not os.path.exists(HIER_MAIN):
+            pytest.skip("hierarchical fixtures not found")
+
+        ext = NetlistExtractor(HIER_MAIN)
+        tree = ext.parse_hierarchy()
+
+        assert tree["name"] == "hierarchical_main"
+        assert len(tree["sheets"]) == 2
+        assert len(tree["components"]) >= 1  # C1 at minimum
+
+        logic = next(s for s in tree["sheets"] if s["name"] == "Logic")
+        # 서브시트에는 hierarchical_label만 있고 컴포넌트는 없을 수 있음
+        assert len(logic["nets"]) >= 3  # VCC, GND, OUT labels
+        assert "pins" in logic
+
+    def test_get_all_components_recursive(self):
+        """전체 계층의 컴포넌트 flat 목록"""
+        from core.schematic.netlist_extractor import NetlistExtractor
+
+        if not os.path.exists(HIER_MAIN):
+            pytest.skip("hierarchical fixtures not found")
+
+        ext = NetlistExtractor(HIER_MAIN)
+        all_comps = ext.get_all_components_recursive()
+
+        # 메인 시트에 C1이 있어야 함
+        refs = {c["reference"] for c in all_comps}
+        assert "C1" in refs
+        assert len(all_comps) >= 1
+
+        # sheet_path 확인
+        c1 = next(c for c in all_comps if c["reference"] == "C1")
+        assert c1["sheet_path"] == "Root"
+
+    def test_validate_hierarchy(self):
+        """계층 설계 검증"""
+        from core.schematic.netlist_extractor import NetlistExtractor
+
+        if not os.path.exists(HIER_MAIN):
+            pytest.skip("hierarchical fixtures not found")
+
+        ext = NetlistExtractor(HIER_MAIN)
+        ext.parse()
+        issues = ext.validate_hierarchy()
+
+        # 참조 피스처는 유효한 설계이므로 심각한 에러 없어야 함
+        errors = [i for i in issues if i["severity"] == "error"]
+        assert len(errors) == 0
+
+    def test_missing_subsheet(self):
+        """존재하지 않는 서브시트 파일 검증"""
+        import tempfile
+        from core.schematic.netlist_extractor import NetlistExtractor
+
+        # 존재하지 않는 서브시트를 참조하는 스키매틱 생성
+        with tempfile.NamedTemporaryFile(suffix=".kicad_sch", delete=False, mode="w", encoding="utf-8") as f:
+            f.write('''(kicad_sch (version 20231120) (generator "test")
+  (uuid "test-uuid")
+  (paper "A4")
+  (lib_symbols)
+  (sheet (at 100 100) (size 40 30)
+    (uuid "sheet-uuid")
+    (property "Sheetname" "Missing" (at 100 99 0) (effects (font (size 1.27 1.27))))
+    (property "Sheetfile" "does_not_exist.kicad_sch" (at 100 131 0) (effects (font (size 1.27 1.27))))
+    (pin "IN" input (at 100 110 180) (effects (font (size 1.27 1.27))) (uuid "pin-uuid"))
+  )
+)''')
+            tmp_path = f.name
+
+        try:
+            ext = NetlistExtractor(tmp_path)
+            ext.parse()
+            issues = ext.validate_hierarchy()
+            errors = [i for i in issues if i["severity"] == "error"]
+            assert len(errors) >= 1
+            assert "파일 없음" in errors[0]["message"]
+        finally:
+            os.unlink(tmp_path)

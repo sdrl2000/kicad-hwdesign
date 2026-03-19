@@ -260,6 +260,89 @@ class SWIGSchematicAdapter(AbstractKiCadAdapter):
             text=text, position=pos, label_type=label_type, orientation=orientation
         )
 
+    def add_sheet(
+        self,
+        sheet_name: str,
+        sheet_file: str,
+        pos: Position,
+        size: tuple[float, float] = (40.0, 30.0),
+        pins: list[dict] | None = None,
+    ) -> dict:
+        """
+        계층 시트 추가 — S-expression 직접 주입
+
+        pins: [{"name": "VCC", "direction": "input", "x": 130, "y": 45, "rotation": 180}, ...]
+        """
+        self._ensure_loaded()
+
+        sheet_uuid = str(uuid.uuid4())
+        pin_lines = ""
+        for pin in (pins or []):
+            pin_uuid = str(uuid.uuid4())
+            pin_lines += (
+                f'    (pin "{pin["name"]}" {pin.get("direction", "input")}\n'
+                f'      (at {pin["x"]} {pin["y"]} {pin.get("rotation", 180)})\n'
+                f'      (effects (font (size 1.27 1.27)) (justify left))\n'
+                f'      (uuid "{pin_uuid}")\n'
+                f'    )\n'
+            )
+
+        sheet_sexp = (
+            f'  (sheet\n'
+            f'    (at {pos.x_mm} {pos.y_mm}) (size {size[0]} {size[1]})\n'
+            f'    (stroke (width 0.1524) (type solid))\n'
+            f'    (fill (color 255 255 194 1.0))\n'
+            f'    (uuid "{sheet_uuid}")\n'
+            f'    (property "Sheetname" "{sheet_name}"\n'
+            f'      (at {pos.x_mm} {pos.y_mm - 1} 0)\n'
+            f'      (effects (font (size 1.27 1.27)) (justify left bottom))\n'
+            f'    )\n'
+            f'    (property "Sheetfile" "{sheet_file}"\n'
+            f'      (at {pos.x_mm} {pos.y_mm + size[1] + 1} 0)\n'
+            f'      (effects (font (size 1.27 1.27)) (justify left top) hide)\n'
+            f'    )\n'
+            f'{pin_lines}'
+            f'  )\n'
+        )
+
+        self._inject_sexp_before_closing(sheet_sexp)
+
+        # 서브시트 파일이 없으면 빈 스키매틱 생성
+        sub_path = Path(self._sch_path).parent / sheet_file
+        if not sub_path.exists():
+            self._create_empty_subsheet(sub_path, pins or [])
+
+        logger.info(f"시트 추가: {sheet_name} → {sheet_file}")
+        return {"name": sheet_name, "file": sheet_file, "uuid": sheet_uuid}
+
+    @staticmethod
+    def _create_empty_subsheet(path: Path, pins: list[dict]):
+        """빈 서브시트 생성 (hierarchical_label 자동 삽입)"""
+        sub_uuid = str(uuid.uuid4())
+        label_lines = ""
+        y_offset = 40.0
+        for pin in pins:
+            label_uuid = str(uuid.uuid4())
+            label_lines += (
+                f'  (hierarchical_label "{pin["name"]}" (shape {pin.get("direction", "input")})\n'
+                f'    (at 50 {y_offset} 180)\n'
+                f'    (effects (font (size 1.27 1.27)) (justify right))\n'
+                f'    (uuid "{label_uuid}")\n'
+                f'  )\n'
+            )
+            y_offset += 10.0
+
+        content = (
+            f'(kicad_sch (version 20231120) (generator "kicad-hwdesign") (generator_version "9.0")\n'
+            f'  (uuid "{sub_uuid}")\n'
+            f'  (paper "A4")\n'
+            f'  (lib_symbols\n'
+            f'  )\n'
+            f'{label_lines}'
+            f')\n'
+        )
+        path.write_text(content, encoding="utf-8")
+
     def get_netlist(self) -> dict:
         """kicad-skip에서 넷 정보 추출"""
         self._ensure_loaded()

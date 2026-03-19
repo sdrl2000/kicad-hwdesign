@@ -803,6 +803,117 @@ async def extract_netlist(schematic_path: str) -> str:
 
 
 # ═══════════════════════════════════════════════════════════
+# 계층 스키매틱 도구
+# ═══════════════════════════════════════════════════════════
+
+
+@mcp.tool()
+async def get_sheet_hierarchy(schematic_path: str) -> str:
+    """스키매틱의 계층 시트 구조를 트리로 반환합니다.
+
+    서브시트를 재귀적으로 탐색하여 전체 설계 계층과 컴포넌트 수를 보여줍니다.
+
+    Args:
+        schematic_path: 루트 .kicad_sch 파일 경로
+    """
+    from .schematic.netlist_extractor import NetlistExtractor
+
+    ext = NetlistExtractor(schematic_path)
+    tree = ext.parse_hierarchy()
+
+    lines = ["# 계층 시트 구조", ""]
+    _format_tree(tree, lines, indent=0)
+    return "\n".join(lines)
+
+
+def _format_tree(node: dict, lines: list[str], indent: int):
+    prefix = "  " * indent
+    comp_count = len(node.get("components", []))
+    sheet_count = len(node.get("sheets", []))
+    pins = node.get("pins", [])
+    pin_str = f' (핀: {", ".join(p["name"] for p in pins)})' if pins else ""
+
+    lines.append(f"{prefix}- **{node['name']}** ({node['file']}) — {comp_count}개 컴포넌트{pin_str}")
+
+    if node.get("error"):
+        lines.append(f"{prefix}  ⚠ {node['error']}")
+
+    for sheet in node.get("sheets", []):
+        _format_tree(sheet, lines, indent + 1)
+
+
+@mcp.tool()
+async def validate_hierarchical_design(schematic_path: str) -> str:
+    """계층 설계의 무결성을 검증합니다.
+
+    서브시트 파일 존재 여부, 시트 핀↔hierarchical_label 매칭,
+    순환 참조 등을 확인합니다.
+
+    Args:
+        schematic_path: 루트 .kicad_sch 파일 경로
+    """
+    from .schematic.netlist_extractor import NetlistExtractor
+
+    ext = NetlistExtractor(schematic_path)
+    ext.parse()
+    issues = ext.validate_hierarchy()
+
+    if not issues:
+        return "계층 설계 검증 통과 — 문제 없음"
+
+    lines = [f"# 계층 설계 검증: {len(issues)}개 이슈", ""]
+    for issue in issues:
+        icon = "🔴" if issue["severity"] == "error" else "🟡"
+        lines.append(f"- {icon} [{issue['severity']}] {issue['sheet']}: {issue['message']}")
+    return "\n".join(lines)
+
+
+@mcp.tool()
+async def add_hierarchical_sheet(
+    file_path: str,
+    sheet_name: str,
+    sheet_file: str,
+    x: float,
+    y: float,
+    width: float = 40.0,
+    height: float = 30.0,
+    pins_json: str = "[]",
+) -> str:
+    """스키매틱에 계층 서브시트를 추가합니다.
+
+    서브시트 파일이 없으면 hierarchical_label이 포함된 빈 파일을 자동 생성합니다.
+
+    Args:
+        file_path: 부모 .kicad_sch 파일 경로
+        sheet_name: 시트 이름 (예: "Power", "Logic", "USB")
+        sheet_file: 서브시트 파일명 (예: "power.kicad_sch")
+        x: 시트 X 좌표
+        y: 시트 Y 좌표
+        width: 시트 너비 (기본 40mm)
+        height: 시트 높이 (기본 30mm)
+        pins_json: 시트 핀 JSON 배열. 예: [{"name":"VCC","direction":"input","x":130,"y":45}]
+    """
+    from .kicad_adapter.base import Position
+    from .kicad_adapter.swig_adapter import SWIGSchematicAdapter
+
+    pins = json.loads(pins_json)
+    adapter = SWIGSchematicAdapter(file_path)
+    result = adapter.add_sheet(
+        sheet_name=sheet_name,
+        sheet_file=sheet_file,
+        pos=Position(x, y),
+        size=(width, height),
+        pins=pins,
+    )
+    pin_names = [p["name"] for p in pins]
+    return (
+        f"계층 시트 추가 완료: {sheet_name} → {sheet_file}\n"
+        f"- 위치: ({x}, {y}), 크기: {width}x{height}\n"
+        f"- 핀: {', '.join(pin_names) if pin_names else '없음'}"
+    )
+
+
+# ═══════════════════════════════════════════════════════════
 # 진입점
 # ═══════════════════════════════════════════════════════════
 
