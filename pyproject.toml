@@ -1,0 +1,92 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hwdesign"
+version = "0.1.0"
+description = "AI 기반 KiCad 하드웨어 설계 자동화 플러그인"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10,<3.13"
+authors = [
+    { name = "hwdesign" },
+]
+keywords = ["kicad", "pcb", "eda", "ai", "hardware-design", "automation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+]
+
+dependencies = [
+    # MCP 서버
+    "fastmcp>=2.0",
+
+    # KiCad 파일 조작
+    "kicad-skip>=0.2.5",
+
+    # rjwalters/kicad-tools (배치 최적화, 라우팅, 풋프린트)
+    "kicad-tools>=0.10.0",
+
+    # 부품 검색
+    "httpx>=0.27.0",
+
+    # 유틸
+    "pydantic>=2.5.0",
+    "python-dotenv>=1.0.0",
+    "loguru>=0.7.0",
+]
+
+[project.optional-dependencies]
+metal = [
+    "kicad-tools[metal]>=0.10.0",
+]
+cuda = [
+    "kicad-tools[cuda]>=0.10.0",
+]
+datasheet = [
+    "kicad-tools[datasheet]>=0.10.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.12.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+all = [
+    "hwdesign[metal,datasheet,dev]",
+]
+
+[project.scripts]
+hwdesign = "core.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["core", "plugin"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

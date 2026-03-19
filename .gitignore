@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Environment
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 참조 레포 (분석용, 커밋 제외)
+_refs/
+
+# 테스트
+.pytest_cache/
+htmlcov/
+.coverage
+
+# 빌드
+*.whl
+*.tar.gz
+
+# KiCad 임시 파일
+*-backups/
+*.kicad_pcb-bak
+*.kicad_sch-bak
+fp-info-cache

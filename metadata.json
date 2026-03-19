@@ -1,0 +1,24 @@
+{
+    "name": "hwdesign",
+    "description": "AI 기반 KiCad 하드웨어 설계 자동화 플러그인",
+    "description_full": "Claude API를 활용한 회로도 생성, AI 기반 PCB 배치/라우팅, 부품 검색 자동화 플러그인",
+    "identifier": "com.hwdesign.kicad-plugin",
+    "type": "plugin",
+    "author": {
+        "name": "hwdesign",
+        "contact": {}
+    },
+    "license": "MIT",
+    "resources": {
+        "homepage": "https://github.com/hwdesign/kicad-plugin"
+    },
+    "versions": [
+        {
+            "version": "0.1.0",
+            "status": "development",
+            "kicad_version": "9.0",
+            "download_url": "",
+            "download_sha256": ""
+        }
+    ]
+}

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "hwdesign": {
+      "command": "/absolute/path/to/hwdesign/.venv/bin/python",
+      "args": ["-m", "core.main"],
+      "cwd": "/absolute/path/to/hwdesign"
+    }
+  }
+}
