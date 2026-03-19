@@ -5,12 +5,12 @@
     "identifier": "com.kicad-hwdesign.mcp-server",
     "type": "plugin",
     "author": {
-        "name": "yoonpro7",
+        "name": "sdrl2000",
         "contact": {}
     },
     "license": "MIT",
     "resources": {
-        "homepage": "https://github.com/yoonpro7/kicad-hwdesign"
+        "homepage": "https://github.com/sdrl2000/kicad-hwdesign"
     },
     "versions": [
         {

@@ -1,6 +1,6 @@
 # kicad-hwdesign
 
-[![Tests](https://github.com/yoonpro7/kicad-hwdesign/actions/workflows/test.yml/badge.svg)](https://github.com/yoonpro7/kicad-hwdesign/actions/workflows/test.yml)
+[![Tests](https://github.com/sdrl2000/kicad-hwdesign/actions/workflows/test.yml/badge.svg)](https://github.com/sdrl2000/kicad-hwdesign/actions/workflows/test.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -37,7 +37,7 @@ kicad-hwdesign MCP 서버 (외부 프로세스) ─── 24개 도구
 ## 설치
 
 ```bash
-git clone https://github.com/yoonpro7/kicad-hwdesign.git
+git clone https://github.com/sdrl2000/kicad-hwdesign.git
 cd kicad-hwdesign
 ```
 
