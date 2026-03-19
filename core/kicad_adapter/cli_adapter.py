@@ -50,12 +50,47 @@ class CLIAdapter(AbstractKiCadAdapter):
         self,
         board_path: str = "",
         schematic_path: str = "",
-        kicad_cli_path: str = "kicad-cli",
+        kicad_cli_path: str = "",
     ):
         self._board_path = board_path
         self._sch_path = schematic_path
-        self._cli = kicad_cli_path
+        self._cli = kicad_cli_path or self._detect_kicad_cli()
         self._verify_cli()
+
+    @staticmethod
+    def _detect_kicad_cli() -> str:
+        """OS별 kicad-cli 경로 자동 감지"""
+        import shutil
+        import platform
+
+        # PATH에서 먼저 찾기
+        found = shutil.which("kicad-cli")
+        if found:
+            return found
+
+        system = platform.system()
+        candidates = []
+        if system == "Windows":
+            candidates = [
+                r"C:\Program Files\KiCad\9.0\bin\kicad-cli.exe",
+                r"C:\Program Files\KiCad\8.0\bin\kicad-cli.exe",
+                r"C:\Program Files (x86)\KiCad\9.0\bin\kicad-cli.exe",
+            ]
+        elif system == "Darwin":
+            candidates = [
+                "/Applications/KiCad/KiCad.app/Contents/MacOS/kicad-cli",
+            ]
+        elif system == "Linux":
+            candidates = [
+                "/usr/bin/kicad-cli",
+                "/usr/local/bin/kicad-cli",
+            ]
+
+        for path in candidates:
+            if Path(path).exists():
+                return path
+
+        return "kicad-cli"  # fallback to PATH
 
     def _verify_cli(self):
         """kicad-cli 사용 가능 여부 확인"""
@@ -65,6 +100,8 @@ class CLIAdapter(AbstractKiCadAdapter):
                 capture_output=True,
                 text=True,
                 timeout=10,
+                encoding="utf-8",
+                errors="replace",
             )
             version = result.stdout.strip()
             logger.info(f"kicad-cli 감지: {version}")
@@ -96,7 +133,7 @@ class CLIAdapter(AbstractKiCadAdapter):
 
         try:
             result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=120
+                cmd, capture_output=True, text=True, timeout=120, encoding="utf-8", errors="replace"
             )
             logger.debug(f"DRC stdout: {result.stdout}")
             if result.returncode not in (0, 1):  # 1 = 위반 있음
@@ -137,7 +174,7 @@ class CLIAdapter(AbstractKiCadAdapter):
 
         try:
             result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=120
+                cmd, capture_output=True, text=True, timeout=120, encoding="utf-8", errors="replace"
             )
             logger.debug(f"ERC stdout: {result.stdout}")
             return self._parse_erc_report(report_path)
@@ -168,7 +205,7 @@ class CLIAdapter(AbstractKiCadAdapter):
             self._board_path,
         ]
 
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120, encoding="utf-8", errors="replace")
         if result.returncode != 0:
             raise RuntimeError(f"Gerber 내보내기 실패: {result.stderr}")
 
@@ -181,7 +218,7 @@ class CLIAdapter(AbstractKiCadAdapter):
             "--output", output_dir,
             self._board_path,
         ]
-        subprocess.run(drill_cmd, capture_output=True, text=True, timeout=60)
+        subprocess.run(drill_cmd, capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace")
 
         logger.info(f"Gerber 내보내기 완료: {output_dir}")
         return output_dir
@@ -200,7 +237,7 @@ class CLIAdapter(AbstractKiCadAdapter):
             self._board_path,
         ]
 
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120, encoding="utf-8", errors="replace")
         if result.returncode != 0:
             raise RuntimeError(f"PDF 내보내기 실패: {result.stderr}")
 
@@ -221,7 +258,7 @@ class CLIAdapter(AbstractKiCadAdapter):
             self._board_path,
         ]
 
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300, encoding="utf-8", errors="replace")
         if result.returncode != 0:
             raise RuntimeError(f"STEP 내보내기 실패: {result.stderr}")
 
@@ -245,7 +282,7 @@ class CLIAdapter(AbstractKiCadAdapter):
             self._sch_path,
         ]
 
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace")
         if result.returncode != 0:
             raise RuntimeError(f"넷리스트 생성 실패: {result.stderr}")
 
@@ -268,7 +305,7 @@ class CLIAdapter(AbstractKiCadAdapter):
             self._sch_path,
         ]
 
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace")
         if result.returncode != 0:
             raise RuntimeError(f"BOM 내보내기 실패: {result.stderr}")
 

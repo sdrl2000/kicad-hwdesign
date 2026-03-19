@@ -453,6 +453,80 @@ async def search_component(query: str, limit: int = 10) -> str:
 
 
 @mcp.tool()
+async def search_component_multi(
+    query: str,
+    limit: int = 5,
+    providers: str = "lcsc,mouser,digikey",
+) -> str:
+    """여러 공급업체(LCSC, Mouser, DigiKey)에서 전자 부품을 동시에 검색합니다.
+
+    사용 가능한 API 키가 설정된 공급업체만 실제로 검색됩니다.
+    MOUSER_API_KEY, DIGIKEY_CLIENT_ID/DIGIKEY_CLIENT_SECRET 환경 변수를 설정하세요.
+
+    Args:
+        query: 검색어 (예: "STM32H743", "10k 0402 resistor", "USB-C connector")
+        limit: 공급업체당 최대 결과 수 (기본 5)
+        providers: 검색할 공급업체 (쉼표 구분, 기본 "lcsc,mouser,digikey")
+    """
+    from .search.lcsc import LCSCSearch
+    from .search.mouser import MouserSearch
+    from .search.digikey import DigiKeySearch
+
+    provider_map = {
+        "lcsc": LCSCSearch,
+        "mouser": MouserSearch,
+        "digikey": DigiKeySearch,
+    }
+
+    requested = [p.strip().lower() for p in providers.split(",") if p.strip()]
+    searchers = []
+    for name in requested:
+        cls = provider_map.get(name)
+        if cls:
+            searchers.append((name.upper(), cls()))
+
+    if not searchers:
+        return "유효한 공급업체가 없습니다. lcsc, mouser, digikey 중 선택하세요."
+
+    # Search all providers concurrently
+    tasks = [searcher.search(query, limit) for _, searcher in searchers]
+    all_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    lines = [f"# 부품 통합 검색: '{query}'", ""]
+
+    total_count = 0
+    for (provider_name, _), result in zip(searchers, all_results):
+        if isinstance(result, Exception):
+            lines.append(f"## {provider_name} -- 검색 실패: {result}")
+            lines.append("")
+            continue
+
+        if not result:
+            lines.append(f"## {provider_name} -- 결과 없음")
+            lines.append("")
+            continue
+
+        total_count += len(result)
+        lines.append(f"## {provider_name} ({len(result)}개)")
+        lines.append("")
+        lines.append("| Part Number | Manufacturer | Package | Price | Stock | URL |")
+        lines.append("|-------------|-------------|---------|-------|-------|-----|")
+        for r in result:
+            url_display = f"[link]({r.url})" if r.url else "-"
+            lines.append(
+                f"| {r.mfr_part_number} | {r.manufacturer} | {r.package} "
+                f"| ${r.price_usd:.3f} | {r.stock:,} | {url_display} |"
+            )
+        lines.append("")
+
+    if total_count == 0:
+        return f"'{query}'에 대한 부품을 어떤 공급업체에서도 찾지 못했습니다."
+
+    lines.insert(1, f"총 {total_count}개 결과")
+    return "\n".join(lines)
+
+
+@mcp.tool()
 async def enrich_bom_with_pricing(bom_json: str) -> str:
     """BOM에 LCSC 부품 가격/재고 정보를 추가합니다.
 
